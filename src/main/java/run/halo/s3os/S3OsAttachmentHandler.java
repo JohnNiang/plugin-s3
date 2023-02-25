@@ -20,6 +20,7 @@ import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriUtils;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 import run.halo.app.core.extension.attachment.Attachment;
 import run.halo.app.core.extension.attachment.Attachment.AttachmentSpec;
@@ -60,6 +61,7 @@ public class S3OsAttachmentHandler implements AttachmentHandler {
             .flatMap(context -> {
                 final var properties = getProperties(context.configMap());
                 return upload(context, properties)
+                    .subscribeOn(Schedulers.boundedElastic())
                     .map(objectDetail -> this.buildAttachment(properties, objectDetail));
             });
     }
@@ -75,11 +77,15 @@ public class S3OsAttachmentHandler implements AttachmentHandler {
                 var objectName = annotations.get(OBJECT_KEY);
                 var properties = getProperties(deleteContext.configMap());
                 var client = buildS3AsyncClient(properties);
-                return Mono.just(client.deleteObject(DeleteObjectRequest.builder()
-                        .bucket(properties.getBucket())
-                        .key(objectName)
-                        .build()))
-                    .doFinally(signalType -> client.close())
+                return Mono.fromCallable(() -> {
+                        try (client) {
+                            return client.deleteObject(DeleteObjectRequest.builder()
+                                .bucket(properties.getBucket())
+                                .key(objectName)
+                                .build());
+                        }
+                    })
+                    .subscribeOn(Schedulers.boundedElastic())
                     .map(response -> {
                         checkResult(response, "delete object");
                         log.info("Delete object {} from bucket {} successfully",
@@ -149,12 +155,16 @@ public class S3OsAttachmentHandler implements AttachmentHandler {
                 var s3client = tuple.getT2();
                 return checkFileExistsAndRename(uploadState, s3client)
                     // init multipart upload
-                    .flatMap(state -> Mono.just(s3client.createMultipartUpload(
-                        CreateMultipartUploadRequest.builder()
-                            .bucket(properties.getBucket())
-                            .contentType(state.contentType)
-                            .key(state.objectKey)
-                            .build())))
+                    .flatMap(state -> Mono.fromCallable(() -> {
+                        try (s3client) {
+                            return s3client.createMultipartUpload(
+                                CreateMultipartUploadRequest.builder()
+                                    .bucket(properties.getBucket())
+                                    .contentType(state.contentType)
+                                    .key(state.objectKey)
+                                    .build());
+                        }
+                    }).subscribeOn(Schedulers.boundedElastic()))
                     .flatMapMany((response) -> {
                         checkResult(response, "createMultipartUpload");
                         uploadState.uploadId = response.uploadId();
