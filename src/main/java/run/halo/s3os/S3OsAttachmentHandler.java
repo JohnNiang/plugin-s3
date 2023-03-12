@@ -155,16 +155,12 @@ public class S3OsAttachmentHandler implements AttachmentHandler {
                 var s3client = tuple.getT2();
                 return checkFileExistsAndRename(uploadState, s3client)
                     // init multipart upload
-                    .flatMap(state -> Mono.fromCallable(() -> {
-                        try (s3client) {
-                            return s3client.createMultipartUpload(
-                                CreateMultipartUploadRequest.builder()
-                                    .bucket(properties.getBucket())
-                                    .contentType(state.contentType)
-                                    .key(state.objectKey)
-                                    .build());
-                        }
-                    }).subscribeOn(Schedulers.boundedElastic()))
+                    .flatMap(state -> Mono.fromCallable(() -> s3client.createMultipartUpload(
+                        CreateMultipartUploadRequest.builder()
+                            .bucket(properties.getBucket())
+                            .contentType(state.contentType)
+                            .key(state.objectKey)
+                            .build())).subscribeOn(Schedulers.boundedElastic()))
                     .flatMapMany((response) -> {
                         checkResult(response, "createMultipartUpload");
                         uploadState.uploadId = response.uploadId();
@@ -238,7 +234,7 @@ public class S3OsAttachmentHandler implements AttachmentHandler {
                 }
                 uploadState.needRemoveMapKey = true;
                 // check whether file exists
-                return Mono.just(s3client.headObject(HeadObjectRequest.builder()
+                return Mono.fromSupplier(() -> s3client.headObject(HeadObjectRequest.builder()
                         .bucket(uploadState.properties.getBucket())
                         .key(uploadState.objectKey)
                         .build()))
