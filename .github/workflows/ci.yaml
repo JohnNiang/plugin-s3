@@ -1,0 +1,9 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    uses: JohnNiang/reusable-workflows/.github/workflows/plugin-ci.yaml@main
+    with:
+      ui-path: console
