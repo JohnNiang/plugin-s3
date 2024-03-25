@@ -9,5 +9,3 @@ on:
 jobs:
   cd:
     uses: JohnNiang/reusable-workflows/.github/workflows/plugin-cd.yaml@main
-    with:
-      artifacts-path: appstore/build/libs
