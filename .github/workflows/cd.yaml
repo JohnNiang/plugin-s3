@@ -9,3 +9,5 @@ on:
 jobs:
   cd:
     uses: JohnNiang/reusable-workflows/.github/workflows/plugin-cd.yaml@main
+    permissions:
+      contents: write
