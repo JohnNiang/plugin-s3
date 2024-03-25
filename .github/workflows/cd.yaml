@@ -9,5 +9,6 @@ on:
 jobs:
   cd:
     uses: JohnNiang/reusable-workflows/.github/workflows/plugin-cd.yaml@main
+    secrets: inherit
     permissions:
       contents: write
