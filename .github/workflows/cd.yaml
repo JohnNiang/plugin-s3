@@ -4,11 +4,12 @@ on:
   release:
     types:
       - published
-  workflow_dispatch:
 
 jobs:
   cd:
-    uses: JohnNiang/reusable-workflows/.github/workflows/plugin-cd.yaml@main
+    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-cd.yaml@main
     secrets: inherit
     permissions:
       contents: write
+    with:
+      app-id: app-Qxhpp

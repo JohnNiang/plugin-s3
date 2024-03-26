@@ -10,4 +10,4 @@ on:
 
 jobs:
   ci:
-    uses: JohnNiang/reusable-workflows/.github/workflows/plugin-ci.yaml@main
+    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@main
